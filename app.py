@@ -229,7 +229,6 @@ def delete_user():
         Will delete User accesing the endpoint
     '''
     g.current_user.delete()
-    db.session.commit()
     return make_response("success",200)
 
 
