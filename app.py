@@ -201,7 +201,7 @@ def post_user():
 
 @app.put('/user')
 @token_auth.login_required()
-def put_user(user_id):
+def put_user():
     '''
         Changes the information fro the user that has the token
 
