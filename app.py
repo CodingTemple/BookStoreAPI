@@ -225,7 +225,7 @@ def put_user(user_id):
 
 @app.delete('/user')
 @token_auth.login_required()
-def delete_user(user_id):
+def delete_user():
     '''
         Can only be used by the user with <user_id>
 
