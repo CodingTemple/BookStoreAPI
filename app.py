@@ -199,14 +199,13 @@ def post_user():
     new_user.save()
     return make_response("success",200)
 
-@app.put('/user/<int:user_id>')
+@app.put('/user')
 @token_auth.login_required()
 def put_user(user_id):
     '''
-        Can only be used by the user with <user_id>
+        Changes the information fro the user that has the token
 
         TokenAuth: Bearer TOKEN
-        updates user with <user_id>
         expected payload (does not need to include all key value pairsAny omitted values will remain unchanged):
         {
             "email" : STRING,
@@ -216,11 +215,8 @@ def put_user(user_id):
         }
     '''
     data = request.get_json()
-    if user_id != g.current_user.user_id:
-        return abort(403)
-    u=User.query.get(user_id)
-    u.from_dict(data)
-    u.save()
+    g.current_user.from_dict(data)
+    db.session.commit()
     return make_response("success",200)
 
 @app.delete('/user')
@@ -233,6 +229,7 @@ def delete_user():
         Will delete User accesing the endpoint
     '''
     g.current_user.delete()
+    db.session.commit()
     return make_response("success",200)
 
 
