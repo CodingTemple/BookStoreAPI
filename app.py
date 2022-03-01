@@ -105,7 +105,7 @@ class User(db.Model):
             "created_on":self.created_on,
             "modified_on":self.modified_on,
             "first_name":self.first_name,
-            "last_name":self.first_name,
+            "last_name":self.last_name,
             "token":self.token
             }
 
@@ -171,10 +171,8 @@ def login():
         Authorization: Basic base64encoded_string
         returns user information including token
     '''
-    data=g.current_user.to_dict()
     g.current_user.get_token()
-    data.update(g.current_user.to_dict())
-    return make_response(data, 200)
+    return make_response(g.current_user.to_dict(), 200)
 
 
 @app.post('/user')
