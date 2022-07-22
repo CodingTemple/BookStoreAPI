@@ -10,7 +10,6 @@ from flask_cors import CORS
 from functools import wraps
 import json
 
-gangsters=json.loads(os.environ.get("GANGSTERS"))
 
 class Config():
     SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI")
@@ -24,6 +23,7 @@ migrate = Migrate(app, db)
 basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth()
 cors = CORS(app)
+gangsters=json.loads(os.environ.get("GANGSTERS"))
 
 @basic_auth.verify_password
 def verify_password(email, password):
