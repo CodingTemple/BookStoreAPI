@@ -365,9 +365,9 @@ def put_question(id):
 @app.delete('/question/<int:id>')
 @token_auth.login_required()
 @require_admin
-def delete_question():
-    q=Question.query.fitler_by(id).first()
-    if not q or q.author != g.current_user.email:
+def delete_question(id):
+    q=Question.query.filter_by(id=id).first()
+    if not q or int(q.author[-4:]) != g.current_user.user_id:
         abort(404)
     q.delete()
     return make_response("success",200)
