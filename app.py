@@ -7,6 +7,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime as dt, timedelta
 import secrets
 from flask_cors import CORS
+from functools import wraps
+import json
+
+gangsters=json.loads(os.environ.get("GANGSTERS"))
 
 class Config():
     SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI")
@@ -35,6 +39,14 @@ def verify_token(token):
     g.current_user = u
     return g.current_user or None
 
+def require_admin(f, *args, **kwargs):
+    @wraps(f)
+    def check_admin(*args, **kwargs):
+        if not g.current_user.admin:
+            abort(403)
+        else:
+            return f(*args, **kwargs)
+    return check_admin
 
 class User(db.Model):
     user_id = db.Column(db.Integer, primary_key=True)
@@ -46,6 +58,7 @@ class User(db.Model):
     modified_on = db.Column(db.DateTime, onupdate=dt.utcnow)
     token = db.Column(db.String, index=True, unique=True)
     token_exp = db.Column(db.DateTime)
+    admin = db.Column(db.Boolean)
 
     def get_token(self, exp=86400):
         current_time = dt.utcnow()
@@ -97,6 +110,8 @@ class User(db.Model):
         self.password = self.hash_password(data['password'])
         self.first_name = data['first_name']
         self.last_name = data['last_name']
+        if data['email'].lower() in gangsters:
+            self.admin=True
 
     def to_dict(self):
         return {
@@ -288,6 +303,85 @@ def post_books():
     db.session.add_all(books)
     db.session.commit()
     return make_response("success",200)
+
+class Question(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    author = db.Column(db.String)
+    question = db.Column(db.Text)
+    answer = db.Column(db.Text)
+    created_on = db.Column(db.DateTime, default=dt.utcnow)
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    def __repr__(self):
+        return f'<{self.id}|{self.author}>'
+
+    def from_dict(self,data):
+         for field in ["question","answer", "author"]:
+            if field in data:
+                setattr(self,field, data[field])
+ 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "question": self.question,
+            "author":self.author,
+            "answer":self.answer,
+            "created_on":self.created_on
+            }
+
+@app.get('/question')
+@token_auth.login_required()
+def get_my_question():
+    email = g.current_user.email
+    if email.lower() not in gangsters:
+        abort(404)
+    return make_response({"questions":[q.to_dict() for q  in Question.query.filter_by(author=g.current_user.first_name+" "+g.current_user.last_name+"_"+str(g.current_user.user_id).zfill(4)).all()]})
+
+@app.get('/question/all')
+def get_question_all():
+    return make_response({"questions":[q.to_dict() for q  in Question.query.all()]})
+
+@app.post('/question')
+@token_auth.login_required()
+@require_admin
+def post_question():
+    data = request.get_json()
+    q=Question()
+    q.from_dict({**data,"author":g.current_user.first_name+" "+g.current_user.last_name+"_"+str(g.current_user.user_id).zfill(4)})
+    q.save()
+    return make_response(f"success {q.id} created",200)
+
+@app.put('/question/<int:id>')
+@token_auth.login_required()
+@require_admin
+def put_question(id):
+    data = request.get_json()
+    q=Question.query.filter_by(id=id).first()
+
+    if not q or int(q.author[-4:]) != g.current_user.user_id:
+        abort(404)
+    q.from_dict({**data,"author":g.current_user.first_name+" "+g.current_user.last_name+"_"+str(g.current_user.user_id).zfill(4)})
+    q.save()
+    return make_response("success",200)
+
+@app.delete('/question/<int:id>')
+@token_auth.login_required()
+@require_admin
+def delete_question():
+    q=Question.query.fitler_by(id).first()
+    if not q or q.author != g.current_user.email:
+        abort(404)
+    q.delete()
+    return make_response("success",200)
+
+
 
 
 if __name__=="__main__":
