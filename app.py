@@ -121,7 +121,8 @@ class User(db.Model):
             "modified_on":self.modified_on,
             "first_name":self.first_name,
             "last_name":self.last_name,
-            "token":self.token
+            "token":self.token,
+            "admin":self.admin            
             }
 
 class Book(db.Model):
@@ -324,7 +325,7 @@ class Question(db.Model):
             "question": self.question,
             "author":self.author,
             "answer":self.answer,
-            "created_on":self.created_on
+            "created_on":self.created_on,
             }
 
 @app.get('/question')
